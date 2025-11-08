@@ -1,0 +1,196 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+/// ========== USUARIOS DE LOGIN ==========
+model User {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  password  String
+  role      String   @default("cliente") // 'admin' | 'recepcionista' | 'cliente'
+  createdAt DateTime @default(now())
+}
+
+/// ========== ROLES Y USUARIOS DEL HOTEL ==========
+model Roles {
+  IdRol     Int        @id @default(autoincrement())
+  NombreRol String
+  Usuarios  Usuarios[]
+}
+
+model Usuarios {
+  IdUsuario      Int       @id @default(autoincrement())
+  Nombre         String
+  Usuario        String
+  ContrasenaHash String
+  IdRol          Int
+
+  Rol            Roles      @relation(fields: [IdRol], references: [IdRol])
+  Reservas       Reservas[]
+  Facturas       Facturas[]
+}
+
+/// ========== CLIENTES ==========
+model Clientes {
+  IdCliente          Int       @id @default(autoincrement())
+  Nombre             String
+  Apellido           String
+  Ciudad             String
+  Correo             String
+  Telefono           String
+  DocumentoIdentidad String?
+
+  Reservas           Reservas[]
+  Estancias          Estancias[]
+  Facturas           Facturas[]
+}
+
+/// ========== TIPOS Y HABITACIONES ==========
+model TiposHabitacion {
+  IdTipoHabitacion Int           @id @default(autoincrement())
+  NombreTipo       String
+  Capacidad        Int
+  PrecioBaseNoche  Decimal
+  PrecioBaseHora   Decimal
+
+  Habitaciones     Habitaciones[]
+}
+
+model Habitaciones {
+  IdHabitacion       Int                 @id @default(autoincrement())
+  Numero             String
+  IdTipoHabitacion   Int
+  NumeroCamas        Int
+  TipoTV             String
+  Estado             String
+
+  TipoHabitacion     TiposHabitacion     @relation(fields: [IdTipoHabitacion], references: [IdTipoHabitacion])
+  ReservaHabitacion  ReservaHabitacion[]
+  EstanciaHabitacion EstanciaHabitacion[]
+}
+
+/// ========== RESERVAS (PLAN) ==========
+model Reservas {
+  IdReserva            Int                 @id @default(autoincrement())
+  CodigoReserva        String?
+  IdCliente            Int
+  IdUsuario            Int?                // opcional para no romper mientras
+  FechaReserva         DateTime?
+  FechaEntradaPrevista DateTime?
+  FechaSalidaPrevista  DateTime?
+  Estado               String
+  MontoTotalEstimado   Decimal?
+  Observaciones        String?
+
+  Cliente              Clientes            @relation(fields: [IdCliente], references: [IdCliente])
+  Usuario              Usuarios?           @relation(fields: [IdUsuario], references: [IdUsuario])
+
+  ReservaHabitacion    ReservaHabitacion[]
+  Estancias            Estancias[]
+}
+
+/// ========== DETALLE HABITACIONES RESERVADAS ==========
+model ReservaHabitacion {
+  IdReservaHabitacion Int         @id @default(autoincrement())
+  IdReserva           Int
+  IdHabitacion        Int
+  PrecioPorNoche      Decimal?
+  PrecioPorHora       Decimal?
+  CantidadNoches      Int?
+  CantidadHoras       Int?
+  Subtotal            Decimal?
+
+  Reserva             Reservas     @relation(fields: [IdReserva], references: [IdReserva])
+  Habitacion          Habitaciones @relation(fields: [IdHabitacion], references: [IdHabitacion])
+}
+
+/// ========== ESTANCIAS (REAL) ==========
+model Estancias {
+  IdEstancia      Int                 @id @default(autoincrement())
+  IdReserva       Int
+  IdCliente       Int
+  FechaCheckIn    DateTime?
+  HoraCheckIn     DateTime?
+  FechaCheckOut   DateTime?
+  HoraCheckOut    DateTime?
+  MontoTotalFinal Decimal?
+  Estado          String
+
+  Reserva         Reservas            @relation(fields: [IdReserva], references: [IdReserva])
+  Cliente         Clientes            @relation(fields: [IdCliente], references: [IdCliente])
+
+  EstanciaHabitacion EstanciaHabitacion[]
+  Facturas           Facturas[]
+}
+
+/// ========== HABITACIONES EN ESTANCIA ==========
+model EstanciaHabitacion {
+  IdEstanciaHabitacion Int            @id @default(autoincrement())
+  IdEstancia           Int
+  IdHabitacion         Int
+  FechaEntradaReal     DateTime?
+  HoraEntradaReal      DateTime?
+  FechaSalidaReal      DateTime?
+  HoraSalidaReal       DateTime?
+  TarifaPorNoche       Decimal?
+  TarifaPorHora        Decimal?
+  CantidadNoches       Int?
+  CantidadHoras        Int?
+  Subtotal             Decimal?
+
+  Estancia             Estancias      @relation(fields: [IdEstancia], references: [IdEstancia])
+  Habitacion           Habitaciones   @relation(fields: [IdHabitacion], references: [IdHabitacion])
+  DetallesFactura      DetalleFactura[]
+}
+
+/// ========== FACTURAS ==========
+model Facturas {
+  IdFactura      Int        @id @default(autoincrement())
+  NumeroFactura  String
+  IdCliente      Int
+  IdEstancia     Int
+  IdUsuario      Int
+  FechaEmision   DateTime
+  Subtotal       Decimal
+  Impuesto       Decimal
+  Total          Decimal
+  Estado         String
+
+  Cliente        Clientes   @relation(fields: [IdCliente], references: [IdCliente])
+  Estancia       Estancias  @relation(fields: [IdEstancia], references: [IdEstancia])
+  Usuario        Usuarios   @relation(fields: [IdUsuario], references: [IdUsuario])
+
+  Detalles       DetalleFactura[]
+  Pagos          Pagos[]
+}
+
+model DetalleFactura {
+  IdDetalle            Int                 @id @default(autoincrement())
+  IdFactura            Int
+  Concepto             String
+  Cantidad             Decimal
+  PrecioUnitario       Decimal
+  TotalLinea           Decimal
+  IdEstanciaHabitacion Int?
+
+  Factura              Facturas            @relation(fields: [IdFactura], references: [IdFactura])
+  EstanciaHabitacion   EstanciaHabitacion? @relation(fields: [IdEstanciaHabitacion], references: [IdEstanciaHabitacion])
+}
+
+/// ========== PAGOS ==========
+model Pagos {
+  IdPago      Int       @id @default(autoincrement())
+  IdFactura   Int
+  FechaPago   DateTime
+  Monto       Decimal
+  MetodoPago  String
+  Referencia  String?
+  Estado      String
+
+  Factura     Facturas  @relation(fields: [IdFactura], references: [IdFactura])
+}
