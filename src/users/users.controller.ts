@@ -12,6 +12,7 @@ import { UsersService } from './users.service';
 import { AuthGuard } from '@nestjs/passport';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
+import { AppRole } from '../common/roles.enum';
 
 @Controller('users')
 // IMPORTANTE: AuthGuard('jwt') PRIMERO, luego RolesGuard
@@ -20,21 +21,21 @@ export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
   // Solo ADMIN puede ver todos los usuarios
-  @Roles('admin')
+  @Roles(AppRole.Admin)
   @Get()
   findAll() {
     return this.usersService.findAll();
   }
 
-  // Solo ADMIN puede actualizar usuarios (si quieres cambiar, aquí)
-  @Roles('admin')
+  // Solo ADMIN puede actualizar usuarios
+  @Roles(AppRole.Admin)
   @Patch(':id')
   update(@Param('id', ParseIntPipe) id: number, @Body() data: any) {
     return this.usersService.update(id, data);
   }
 
   // Solo ADMIN puede eliminar usuarios
-  @Roles('admin')
+  @Roles(AppRole.Admin)
   @Delete(':id')
   remove(@Param('id', ParseIntPipe) id: number) {
     return this.usersService.remove(id);

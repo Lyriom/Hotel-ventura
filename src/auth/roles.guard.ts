@@ -1,38 +1,30 @@
-import {
-  CanActivate,
-  ExecutionContext,
-  ForbiddenException,
-  Injectable,
-} from '@nestjs/common';
+// src/auth/roles.guard.ts
+import { Injectable, CanActivate, ExecutionContext, ForbiddenException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
+import { ROLES_KEY } from './roles.decorator';
+import { AppRole } from '../common/roles.enum';
 
 @Injectable()
 export class RolesGuard implements CanActivate {
   constructor(private reflector: Reflector) {}
 
   canActivate(context: ExecutionContext): boolean {
-    const requiredRoles =
-      this.reflector.get<string[]>('roles', context.getHandler()) || [];
+    const requiredRoles = this.reflector.getAllAndOverride<AppRole[]>(ROLES_KEY, [
+      context.getHandler(),
+      context.getClass(),
+    ]);
 
-    // Si el endpoint no tiene @Roles, no restringimos
-    if (requiredRoles.length === 0) {
-      return true;
-    }
+    // Si la ruta no exige roles, pasa
+    if (!requiredRoles) return true;
 
-    const request = context.switchToHttp().getRequest();
-    const user = request.user; // lo rellena AuthGuard('jwt')
+    const { user } = context.switchToHttp().getRequest();
 
-    // Debug opcional:
-    // console.log('RolesGuard - required:', requiredRoles, 'user:', user);
-
-    if (!user) {
-      throw new ForbiddenException('No autenticado');
-    }
-
-    if (!requiredRoles.includes(user.role)) {
-      throw new ForbiddenException('No tienes permisos para acceder');
+    // Si no hay usuario o su rol no está permitido
+    if (!user || !requiredRoles.includes(user.role)) {
+      throw new ForbiddenException('No tienes permiso para acceder a esta ruta');
     }
 
     return true;
   }
 }
+
