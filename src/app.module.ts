@@ -21,6 +21,7 @@ import { ReservasModule } from './reservas/reservas.module';
 import { FacturasModule } from './facturas/facturas.module';
 import { DetalleFacturaModule } from './detalle-factura/detalle-factura.module';
 import { PagosModule } from './pagos/pagos.module';
+import { UsuariosModule } from './usuarios/usuarios.module';
 
 @Module({
   imports: [
@@ -34,6 +35,7 @@ import { PagosModule } from './pagos/pagos.module';
 
     // 👤 Gestión clientes y roles
     ClientesModule,
+    UsuariosModule,
 
     // 🏨 Habitaciones y estancias
     TiposHabitacionModule,
