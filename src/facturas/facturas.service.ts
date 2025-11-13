@@ -3,25 +3,22 @@ import { PrismaService } from '../database/prisma/prisma.service';
 import { CreateFacturaDto } from './dto/create-factura.dto';
 import { UpdateFacturaDto } from './dto/update-factura.dto';
 
-// Para create: SIEMPRE devuelve un Date
-function toDateRequired(value: string): Date {
-  return new Date(value);
-}
-
-// Para update: puede ser opcional
-function toDateOptional(value?: string): Date | undefined {
-  return value ? new Date(value) : undefined;
-}
-
 @Injectable()
 export class FacturasService {
   constructor(private prisma: PrismaService) {}
 
   create(data: CreateFacturaDto) {
     const payload = {
-      ...data,
-      // aquí ya no puede ser undefined, porque el DTO obliga a mandarlo
-      FechaEmision: toDateRequired(data.FechaEmision),
+      NumeroFactura: data.NumeroFactura,
+      IdCliente: data.IdCliente,
+      IdEstancia: data.IdEstancia,
+      IdUsuario: data.IdUsuario,
+      // 👇 SIEMPRE un Date (NUNCA undefined)
+      FechaEmision: new Date(data.FechaEmision),
+      Subtotal: Number(data.Subtotal),
+      Impuesto: Number(data.Impuesto),
+      Total: Number(data.Total),
+      Estado: data.Estado,
     };
 
     return this.prisma.facturas.create({
@@ -64,13 +61,14 @@ export class FacturasService {
   async update(id: number, data: UpdateFacturaDto) {
     await this.findOne(id);
 
-    const payload: any = {
-      ...data,
-    };
+    const payload: any = { ...data };
 
     if (data.FechaEmision) {
-      payload.FechaEmision = toDateOptional(data.FechaEmision);
+      payload.FechaEmision = new Date(data.FechaEmision);
     }
+    if (data.Subtotal !== undefined) payload.Subtotal = Number(data.Subtotal);
+    if (data.Impuesto !== undefined) payload.Impuesto = Number(data.Impuesto);
+    if (data.Total !== undefined) payload.Total = Number(data.Total);
 
     return this.prisma.facturas.update({
       where: { IdFactura: id },
@@ -86,3 +84,4 @@ export class FacturasService {
     });
   }
 }
+

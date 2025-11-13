@@ -1,10 +1,10 @@
 import {
-  IsString,
-  IsNotEmpty,
   IsInt,
+  IsNotEmpty,
   IsNumber,
-  IsOptional,
+  IsString,
   Min,
+  IsDateString,
 } from 'class-validator';
 
 export class CreateFacturaDto {
@@ -21,9 +21,8 @@ export class CreateFacturaDto {
   @IsInt()
   IdUsuario: number;
 
-  @IsString()
-  @IsNotEmpty()
-  FechaEmision: string; // Lo convertimos a Date en el service
+  @IsDateString()
+  FechaEmision: string; // <- OBLIGATORIA
 
   @IsNumber()
   @Min(0)
