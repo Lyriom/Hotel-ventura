@@ -17,6 +17,7 @@ import { FacturasModule } from './facturas/facturas.module';
 import { DetalleFacturaModule } from './detalle-factura/detalle-factura.module';
 import { PagosModule } from './pagos/pagos.module';
 
+
 @Module({
   imports: [
     DatabaseModule,
