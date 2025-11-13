@@ -1,97 +1,90 @@
-import { ForbiddenException, Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../database/prisma/prisma.service';
-import { CreateReservaDto } from './create-reserva.dto';
-import { Clientes, Prisma } from '@prisma/client';
+import { CreateReservaDto } from './dto/create-reserva.dto';
+import { UpdateReservaDto } from './dto/update-reserva.dto';
+
+function toDateOptional(value?: string) {
+  return value ? new Date(value) : undefined;
+}
 
 @Injectable()
 export class ReservasService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private prisma: PrismaService) {}
 
-  async create(
-    user: { id: number; email: string; role: string },
-    dto: CreateReservaDto,
-  ) {
-    try {
-      // 1. Determinar cliente
-      let cliente: Clientes | null = null;
+  create(data: CreateReservaDto) {
+    const payload = {
+      ...data,
+      FechaReserva: toDateOptional(data.FechaReserva),
+      FechaEntradaPrevista: toDateOptional(data.FechaEntradaPrevista),
+      FechaSalidaPrevista: toDateOptional(data.FechaSalidaPrevista),
+    };
 
-      if (dto.clienteEmail) {
-        // Solo admin o recepcionista pueden crear para otro
-        if (user.role === 'admin' || user.role === 'recepcionista') {
-          cliente = await this.ensureCliente(dto.clienteEmail);
-        } else {
-          throw new ForbiddenException(
-            'No puedes crear reservas para otros clientes',
-          );
-        }
-      } else {
-        // Cliente crea su propia reserva
-        if (!user.email) {
-          throw new ForbiddenException('No se pudo determinar el cliente');
-        }
-        cliente = await this.ensureCliente(user.email);
-      }
-
-      // 2. Crear la reserva
-      const reserva = await this.prisma.reservas.create({
-        data: {
-          IdCliente: cliente.IdCliente,
-          // IdUsuario opcional por ahora
-          FechaReserva: new Date(),
-          FechaEntradaPrevista: new Date(dto.fechaEntrada),
-          FechaSalidaPrevista: new Date(dto.fechaSalida),
-          Estado: 'Pendiente',
-          MontoTotalEstimado: new Prisma.Decimal(0),
-          Observaciones: dto.observaciones || '',
-        },
-      });
-
-      // 3. Crear relación con habitación
-      await this.prisma.reservaHabitacion.create({
-        data: {
-          IdReserva: reserva.IdReserva,
-          IdHabitacion: dto.habitacionId,
-          PrecioPorNoche: new Prisma.Decimal(0),
-          PrecioPorHora: new Prisma.Decimal(0),
-          CantidadNoches: 0,
-          CantidadHoras: 0,
-          Subtotal: new Prisma.Decimal(0),
-        },
-      });
-
-      return reserva;
-    } catch (e: any) {
-      console.error('Error creando reserva:', e.code, e.message, e.meta);
-      throw e;
-    }
+    return this.prisma.reservas.create({
+      data: payload,
+    });
   }
 
-  async findAll() {
+  findAll() {
     return this.prisma.reservas.findMany({
+      orderBy: { IdReserva: 'asc' },
       include: {
         Cliente: true,
-        ReservaHabitacion: {
-          include: { Habitacion: true },
-        },
+        Usuario: true,
+        ReservaHabitacion: true,
+        Estancias: true,
       },
     });
   }
 
-  private async ensureCliente(email: string): Promise<Clientes> {
-    const existing = await this.prisma.clientes.findFirst({
-      where: { Correo: email },
+  async findOne(id: number) {
+    const reserva = await this.prisma.reservas.findUnique({
+      where: { IdReserva: id },
+      include: {
+        Cliente: true,
+        Usuario: true,
+        ReservaHabitacion: true,
+        Estancias: true,
+      },
     });
 
-    if (existing) return existing;
+    if (!reserva) {
+      throw new NotFoundException('Reserva no encontrada');
+    }
 
-    return this.prisma.clientes.create({
-      data: {
-        Nombre: email.split('@')[0],
-        Apellido: '',
-        Ciudad: '',
-        Correo: email,
-        Telefono: '',
-      },
+    return reserva;
+  }
+
+  async update(id: number, data: UpdateReservaDto) {
+    await this.findOne(id);
+
+    const payload: any = { ...data };
+
+    if (data.FechaReserva) {
+      payload.FechaReserva = toDateOptional(data.FechaReserva);
+    }
+    if (data.FechaEntradaPrevista) {
+      payload.FechaEntradaPrevista = toDateOptional(
+        data.FechaEntradaPrevista,
+      );
+    }
+    if (data.FechaSalidaPrevista) {
+      payload.FechaSalidaPrevista = toDateOptional(
+        data.FechaSalidaPrevista,
+      );
+    }
+
+    return this.prisma.reservas.update({
+      where: { IdReserva: id },
+      data: payload,
+    });
+  }
+
+  async remove(id: number) {
+    await this.findOne(id);
+
+    return this.prisma.reservas.delete({
+      where: { IdReserva: id },
     });
   }
 }
+
