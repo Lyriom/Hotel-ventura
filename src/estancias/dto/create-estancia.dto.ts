@@ -1,9 +1,11 @@
 import {
   IsInt,
   IsNotEmpty,
-  IsNumber,
   IsOptional,
   IsString,
+  IsNumber,
+  Min,
+  IsDateString,
 } from 'class-validator';
 
 export class CreateEstanciaDto {
@@ -14,26 +16,27 @@ export class CreateEstanciaDto {
   IdCliente: number;
 
   @IsOptional()
-  @IsString()
+  @IsDateString()
   FechaCheckIn?: string;
 
   @IsOptional()
-  @IsString()
+  @IsDateString()
   HoraCheckIn?: string;
 
   @IsOptional()
-  @IsString()
+  @IsDateString()
   FechaCheckOut?: string;
 
   @IsOptional()
-  @IsString()
+  @IsDateString()
   HoraCheckOut?: string;
 
   @IsOptional()
   @IsNumber()
+  @Min(0)
   MontoTotalFinal?: number;
 
-  @IsNotEmpty()
   @IsString()
+  @IsNotEmpty()
   Estado: string;
 }
