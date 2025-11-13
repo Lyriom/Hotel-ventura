@@ -136,17 +136,3 @@ Algunos de los modelos definidos en `schema.prisma`:
   Facturación completa, conceptos de la factura y pagos asociados.
 
 ---
-
-## Configuración del entorno
-
-### Variables de entorno
-
-Crear un archivo `.env` en la raíz del proyecto con al menos:
-
-```env
-DATABASE_URL="postgresql://usuario:password@host:puerto/base?schema=public"
-
-JWT_SECRET="cambia_este_secreto"
-JWT_EXPIRES_IN="1d"
-
-PORT=3000
