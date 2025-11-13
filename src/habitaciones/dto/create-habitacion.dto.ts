@@ -1,16 +1,23 @@
-import { IsInt, IsNotEmpty, Min } from 'class-validator';
-import { Type } from 'class-transformer';
+import { IsInt, IsNotEmpty, IsString, Min } from 'class-validator';
 
 export class CreateHabitacionDto {
-  @IsNotEmpty() Numero: string;
+  @IsString()
+  @IsNotEmpty()
+  Numero: string;
 
-  @Type(() => Number) @IsInt() @Min(1)
+  @IsInt()
+  @Min(1)
   IdTipoHabitacion: number;
 
-  @Type(() => Number) @IsInt() @Min(1)
+  @IsInt()
+  @Min(1)
   NumeroCamas: number;
 
-  @IsNotEmpty() TipoTV: string;
+  @IsString()
+  @IsNotEmpty()
+  TipoTV: string;
 
-  @IsNotEmpty() Estado: string; // 'disponible' | 'ocupada' | 'mantenimiento'
+  @IsString()
+  @IsNotEmpty()
+  Estado: string; // 'disponible', 'ocupada', etc.
 }

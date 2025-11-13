@@ -6,6 +6,5 @@ import { PrismaService } from '../database/prisma/prisma.service';
 @Module({
   controllers: [HabitacionesController],
   providers: [HabitacionesService, PrismaService],
-  exports: [HabitacionesService],
 })
 export class HabitacionesModule {}

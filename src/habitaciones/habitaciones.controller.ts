@@ -1,28 +1,27 @@
 import {
-  Controller,
-  Get,
-  Post,
   Body,
-  Param,
-  Patch,
+  Controller,
   Delete,
-  UseGuards,
+  Get,
+  Param,
   ParseIntPipe,
+  Patch,
+  Post,
+  UseGuards,
 } from '@nestjs/common';
+import { HabitacionesService } from './habitaciones.service';
+import { CreateHabitacionDto } from './dto/create-habitacion.dto';
+import { UpdateHabitacionDto } from './dto/update-habitacion.dto';
 import { AuthGuard } from '@nestjs/passport';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
 import { AppRole } from '../common/roles.enum';
-import { HabitacionesService } from './habitaciones.service';
-import { CreateHabitacionDto } from './dto/create-habitacion.dto';
-import { UpdateHabitacionDto } from './dto/update-habitacion.dto';
 
 @UseGuards(AuthGuard('jwt'))
 @Controller('habitaciones')
 export class HabitacionesController {
   constructor(private readonly service: HabitacionesService) {}
 
-  // Crear (admin o recepcionista)
   @UseGuards(RolesGuard)
   @Roles(AppRole.Admin, AppRole.Recepcionista)
   @Post()
@@ -30,19 +29,16 @@ export class HabitacionesController {
     return this.service.create(dto);
   }
 
-  // Listar (cualquier autenticado)
   @Get()
   findAll() {
     return this.service.findAll();
   }
 
-  // Obtener una (cualquier autenticado)
   @Get(':id')
   findOne(@Param('id', ParseIntPipe) id: number) {
     return this.service.findOne(id);
   }
 
-  // Actualizar (admin o recepcionista)
   @UseGuards(RolesGuard)
   @Roles(AppRole.Admin, AppRole.Recepcionista)
   @Patch(':id')
@@ -53,7 +49,6 @@ export class HabitacionesController {
     return this.service.update(id, dto);
   }
 
-  // Eliminar (admin o recepcionista)
   @UseGuards(RolesGuard)
   @Roles(AppRole.Admin, AppRole.Recepcionista)
   @Delete(':id')
