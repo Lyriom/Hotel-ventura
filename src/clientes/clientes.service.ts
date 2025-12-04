@@ -32,6 +32,12 @@ export class ClientesService {
     return cliente;
   }
 
+  async findByEmail(email: string) {
+    return this.prisma.clientes.findUnique({
+      where: { Correo: email },
+    });
+  }
+
   async update(id: number, data: UpdateClienteDto) {
     await this.findOne(id);
     return this.prisma.clientes.update({
