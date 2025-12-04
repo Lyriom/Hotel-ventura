@@ -32,7 +32,7 @@ export class ClientesController {
 
   // Listar clientes: admin + recepcionista
   @UseGuards(RolesGuard)
-  @Roles(AppRole.Admin, AppRole.Recepcionista)
+  @Roles(AppRole.Admin, AppRole.Recepcionista, AppRole.Cliente)
   @Get()
   findAll() {
     return this.service.findAll();
