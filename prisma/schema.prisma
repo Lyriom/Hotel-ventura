@@ -7,7 +7,6 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-
 /// ========== USUARIOS DE LOGIN ==========
 model User {
   id        Int      @id @default(autoincrement())
@@ -20,14 +19,14 @@ model User {
 /// ========== ROLES Y USUARIOS DEL HOTEL ==========
 model Roles {
   IdRol     Int        @id @default(autoincrement())
-  NombreRol String
+  NombreRol String     @unique      // ← un rol no se repite
   Usuarios  Usuarios[]
 }
 
 model Usuarios {
   IdUsuario      Int       @id @default(autoincrement())
   Nombre         String
-  Usuario        String
+  Usuario        String    @unique   // ← username único
   ContrasenaHash String
   IdRol          Int
 
@@ -42,9 +41,9 @@ model Clientes {
   Nombre             String
   Apellido           String
   Ciudad             String
-  Correo             String
+  Correo             String    @unique   // ← un email por cliente
   Telefono           String
-  DocumentoIdentidad String?
+  DocumentoIdentidad String?   @unique   // ← si lo tiene, que no se repita
 
   Reservas           Reservas[]
   Estancias          Estancias[]
@@ -54,7 +53,7 @@ model Clientes {
 /// ========== TIPOS Y HABITACIONES ==========
 model TiposHabitacion {
   IdTipoHabitacion Int           @id @default(autoincrement())
-  NombreTipo       String
+  NombreTipo       String        @unique  // ← nombre de tipo único
   Capacidad        Int
   PrecioBaseNoche  Decimal
   PrecioBaseHora   Decimal
@@ -64,7 +63,7 @@ model TiposHabitacion {
 
 model Habitaciones {
   IdHabitacion       Int                 @id @default(autoincrement())
-  Numero             String
+  Numero             String              @unique    // ← número de habitación único
   IdTipoHabitacion   Int
   NumeroCamas        Int
   TipoTV             String
@@ -73,12 +72,14 @@ model Habitaciones {
   TipoHabitacion     TiposHabitacion     @relation(fields: [IdTipoHabitacion], references: [IdTipoHabitacion])
   ReservaHabitacion  ReservaHabitacion[]
   EstanciaHabitacion EstanciaHabitacion[]
+
+  @@index([IdTipoHabitacion])
 }
 
 /// ========== RESERVAS (PLAN) ==========
 model Reservas {
   IdReserva            Int                 @id @default(autoincrement())
-  CodigoReserva        String?
+  CodigoReserva        String?             @unique   // ← código de reserva único
   IdCliente            Int
   IdUsuario            Int?                // opcional para no romper mientras
   FechaReserva         DateTime?
@@ -93,6 +94,9 @@ model Reservas {
 
   ReservaHabitacion    ReservaHabitacion[]
   Estancias            Estancias[]
+
+  @@index([IdCliente])
+  @@index([IdUsuario])
 }
 
 /// ========== DETALLE HABITACIONES RESERVADAS ==========
@@ -108,6 +112,10 @@ model ReservaHabitacion {
 
   Reserva             Reservas     @relation(fields: [IdReserva], references: [IdReserva])
   Habitacion          Habitaciones @relation(fields: [IdHabitacion], references: [IdHabitacion])
+
+  // ← una misma habitación no puede estar dos veces en la misma reserva
+  @@unique([IdReserva, IdHabitacion])
+  @@index([IdHabitacion])
 }
 
 /// ========== ESTANCIAS (REAL) ==========
@@ -127,6 +135,10 @@ model Estancias {
 
   EstanciaHabitacion EstanciaHabitacion[]
   Facturas           Facturas[]
+
+  // ← un cliente no debería tener dos estancias distintas para la misma reserva
+  @@unique([IdReserva, IdCliente])
+  @@index([IdCliente])
 }
 
 /// ========== HABITACIONES EN ESTANCIA ==========
@@ -147,12 +159,16 @@ model EstanciaHabitacion {
   Estancia             Estancias      @relation(fields: [IdEstancia], references: [IdEstancia])
   Habitacion           Habitaciones   @relation(fields: [IdHabitacion], references: [IdHabitacion])
   DetallesFactura      DetalleFactura[]
+
+  // ← misma habitación no se repite dentro de la misma estancia
+  @@unique([IdEstancia, IdHabitacion])
+  @@index([IdHabitacion])
 }
 
 /// ========== FACTURAS ==========
 model Facturas {
   IdFactura      Int        @id @default(autoincrement())
-  NumeroFactura  String
+  NumeroFactura  String     @unique      // ← número de factura único
   IdCliente      Int
   IdEstancia     Int
   IdUsuario      Int
@@ -168,6 +184,10 @@ model Facturas {
 
   Detalles       DetalleFactura[]
   Pagos          Pagos[]
+
+  @@index([IdCliente])
+  @@index([IdEstancia])
+  @@index([IdUsuario])
 }
 
 model DetalleFactura {
@@ -181,6 +201,9 @@ model DetalleFactura {
 
   Factura              Facturas            @relation(fields: [IdFactura], references: [IdFactura])
   EstanciaHabitacion   EstanciaHabitacion? @relation(fields: [IdEstanciaHabitacion], references: [IdEstanciaHabitacion])
+
+  @@index([IdFactura])
+  @@index([IdEstanciaHabitacion])
 }
 
 /// ========== PAGOS ==========
@@ -190,8 +213,10 @@ model Pagos {
   FechaPago   DateTime
   Monto       Decimal
   MetodoPago  String
-  Referencia  String?
+  Referencia  String?   // si quieres también puedes hacerla @unique
   Estado      String
 
   Factura     Facturas  @relation(fields: [IdFactura], references: [IdFactura])
+
+  @@index([IdFactura])
 }
