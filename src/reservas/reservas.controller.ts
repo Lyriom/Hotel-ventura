@@ -32,7 +32,7 @@ export class ReservasController {
 
   // Listar reservas: admin y recepcionista
   @UseGuards(RolesGuard)
-  @Roles(AppRole.Admin, AppRole.Recepcionista)
+  @Roles(AppRole.Admin, AppRole.Recepcionista, AppRole.Cliente)
   @Get()
   findAll() {
     return this.service.findAll();
