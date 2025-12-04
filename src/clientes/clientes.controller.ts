@@ -22,17 +22,24 @@ import { AppRole } from '../common/roles.enum';
 export class ClientesController {
   constructor(private readonly service: ClientesService) {}
 
-  // Crear cliente: admin + recepcionista
+  // Crear cliente
   @UseGuards(RolesGuard)
   @Roles(AppRole.Admin, AppRole.Recepcionista, AppRole.Cliente)
   @Post()
   create(@Body() dto: CreateClienteDto) {
     return this.service.create(dto);
   }
-
-  // Listar clientes: admin + recepcionista
+  
   @UseGuards(RolesGuard)
-  @Roles(AppRole.Admin, AppRole.Recepcionista, AppRole.Cliente)
+  @Roles(AppRole.Admin, AppRole.Recepcionista, AppRole.Cliente) // Permitimos al cliente usarse a sí mismo
+  @Get('email/:email')
+  findByEmail(@Param('email') email: string) {
+    return this.service.findByEmail(email);
+  }
+
+  // Listar clientes
+  @UseGuards(RolesGuard)
+  @Roles(AppRole.Admin, AppRole.Recepcionista)
   @Get()
   findAll() {
     return this.service.findAll();
