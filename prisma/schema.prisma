@@ -53,10 +53,10 @@ model Clientes {
 /// ========== TIPOS Y HABITACIONES ==========
 model TiposHabitacion {
   IdTipoHabitacion Int           @id @default(autoincrement())
-  NombreTipo       String        @unique  // ← nombre de tipo único
+  NombreTipo       String        @unique
   Capacidad        Int
-  PrecioBaseNoche  Decimal
-  PrecioBaseHora   Decimal
+  PrecioBaseNoche  Decimal?      
+  PrecioBaseHora   Decimal?
 
   Habitaciones     Habitaciones[]
 }
