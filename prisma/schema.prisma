@@ -7,7 +7,7 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-/// ========== USUARIOS DE LOGIN ==========
+/// ========== USUARIOS DE LOGIN (Auth) ==========
 model User {
   id        Int      @id @default(autoincrement())
   email     String   @unique
@@ -16,207 +16,127 @@ model User {
   createdAt DateTime @default(now())
 }
 
-/// ========== ROLES Y USUARIOS DEL HOTEL ==========
+/// ========== ROLES Y STAFF ==========
 model Roles {
   IdRol     Int        @id @default(autoincrement())
-  NombreRol String     @unique      // ← un rol no se repite
+  NombreRol String     @unique
   Usuarios  Usuarios[]
 }
 
 model Usuarios {
-  IdUsuario      Int       @id @default(autoincrement())
+  IdUsuario      Int        @id @default(autoincrement())
   Nombre         String
-  Usuario        String    @unique   // ← username único
+  Usuario        String     @unique
   ContrasenaHash String
   IdRol          Int
-
   Rol            Roles      @relation(fields: [IdRol], references: [IdRol])
   Reservas       Reservas[]
-  Facturas       Facturas[]
 }
 
 /// ========== CLIENTES ==========
 model Clientes {
-  IdCliente          Int       @id @default(autoincrement())
+  IdCliente          Int         @id @default(autoincrement())
   Nombre             String
   Apellido           String
   Ciudad             String
-  Correo             String    @unique   // ← un email por cliente
+  Correo             String      @unique
   Telefono           String
-  DocumentoIdentidad String?   @unique   // ← si lo tiene, que no se repita
-
+  DocumentoIdentidad String?     @unique
   Reservas           Reservas[]
   Estancias          Estancias[]
-  Facturas           Facturas[]
 }
 
-/// ========== TIPOS Y HABITACIONES ==========
+/// ========== CONFIGURACIÓN DE HABITACIONES ==========
 model TiposHabitacion {
-  IdTipoHabitacion Int           @id @default(autoincrement())
-  NombreTipo       String        @unique  // ← nombre de tipo único
+  IdTipoHabitacion Int            @id @default(autoincrement())
+  NombreTipo       String         @unique
   Capacidad        Int
-  PrecioBaseNoche  Decimal
-  PrecioBaseHora   Decimal
-
+  // Nota: He quitado los precios de aquí para ponerlos en la habitación individual,
+  // pero podrías dejarlos aquí como "precio sugerido" si quisieras.
   Habitaciones     Habitaciones[]
 }
 
 model Habitaciones {
-  IdHabitacion       Int                 @id @default(autoincrement())
-  Numero             String              @unique    // ← número de habitación único
-  IdTipoHabitacion   Int
-  NumeroCamas        Int
-  TipoTV             String
-  Estado             String
+  IdHabitacion     Int             @id @default(autoincrement())
+  Numero           String          @unique
+  IdTipoHabitacion Int
+  NumeroCamas      Int
+  TipoTV           String
+  Estado           String          // 'Disponible', 'Mantenimiento', 'Ocupada'
+  
+  // --- NUEVOS CAMPOS DE PRECIO ---
+  PrecioNoche      Decimal         @db.Decimal(10, 2)
+  PrecioHora       Decimal?        @db.Decimal(10, 2) // Opcional si no alquilas por horas
 
-  TipoHabitacion     TiposHabitacion     @relation(fields: [IdTipoHabitacion], references: [IdTipoHabitacion])
+  TipoHabitacion     TiposHabitacion      @relation(fields: [IdTipoHabitacion], references: [IdTipoHabitacion])
   ReservaHabitacion  ReservaHabitacion[]
   EstanciaHabitacion EstanciaHabitacion[]
 
   @@index([IdTipoHabitacion])
 }
 
-/// ========== RESERVAS (PLAN) ==========
+/// ========== RESERVAS ==========
 model Reservas {
-  IdReserva            Int                 @id @default(autoincrement())
-  CodigoReserva        String?             @unique   // ← código de reserva único
+  IdReserva            Int       @id @default(autoincrement())
+  CodigoReserva        String?   @unique
   IdCliente            Int
-  IdUsuario            Int?                // opcional para no romper mientras
-  FechaReserva         DateTime?
+  IdUsuario            Int?      // Quién registró la reserva (opcional)
+  FechaReserva         DateTime? @default(now())
   FechaEntradaPrevista DateTime?
   FechaSalidaPrevista  DateTime?
   Estado               String
-  MontoTotalEstimado   Decimal?
+  MontoTotalEstimado   Decimal?  @db.Decimal(10, 2)
   Observaciones        String?
 
-  Cliente              Clientes            @relation(fields: [IdCliente], references: [IdCliente])
-  Usuario              Usuarios?           @relation(fields: [IdUsuario], references: [IdUsuario])
-
-  ReservaHabitacion    ReservaHabitacion[]
-  Estancias            Estancias[]
+  Cliente           Clientes            @relation(fields: [IdCliente], references: [IdCliente])
+  Usuario           Usuarios?           @relation(fields: [IdUsuario], references: [IdUsuario])
+  ReservaHabitacion ReservaHabitacion[]
+  Estancias         Estancias[]
 
   @@index([IdCliente])
-  @@index([IdUsuario])
 }
 
-/// ========== DETALLE HABITACIONES RESERVADAS ==========
 model ReservaHabitacion {
-  IdReservaHabitacion Int         @id @default(autoincrement())
+  IdReservaHabitacion Int          @id @default(autoincrement())
   IdReserva           Int
   IdHabitacion        Int
-  PrecioPorNoche      Decimal?
-  PrecioPorHora       Decimal?
-  CantidadNoches      Int?
-  CantidadHoras       Int?
-  Subtotal            Decimal?
+  PrecioPorNoche      Decimal?     @db.Decimal(10, 2) // Snapshot del precio al momento de reservar
+  
+  Reserva    Reservas     @relation(fields: [IdReserva], references: [IdReserva], onDelete: Cascade)
+  Habitacion Habitaciones @relation(fields: [IdHabitacion], references: [IdHabitacion])
 
-  Reserva             Reservas     @relation(fields: [IdReserva], references: [IdReserva])
-  Habitacion          Habitaciones @relation(fields: [IdHabitacion], references: [IdHabitacion])
-
-  // ← una misma habitación no puede estar dos veces en la misma reserva
   @@unique([IdReserva, IdHabitacion])
-  @@index([IdHabitacion])
 }
 
-/// ========== ESTANCIAS (REAL) ==========
+/// ========== ESTANCIAS (Check-in / Check-out) ==========
 model Estancias {
-  IdEstancia      Int                 @id @default(autoincrement())
+  IdEstancia      Int       @id @default(autoincrement())
   IdReserva       Int
   IdCliente       Int
   FechaCheckIn    DateTime?
   HoraCheckIn     DateTime?
   FechaCheckOut   DateTime?
   HoraCheckOut    DateTime?
-  MontoTotalFinal Decimal?
+  MontoTotalFinal Decimal?  @db.Decimal(10, 2)
   Estado          String
 
-  Reserva         Reservas            @relation(fields: [IdReserva], references: [IdReserva])
-  Cliente         Clientes            @relation(fields: [IdCliente], references: [IdCliente])
-
+  Reserva            Reservas             @relation(fields: [IdReserva], references: [IdReserva])
+  Cliente            Clientes             @relation(fields: [IdCliente], references: [IdCliente])
   EstanciaHabitacion EstanciaHabitacion[]
-  Facturas           Facturas[]
 
-  // ← un cliente no debería tener dos estancias distintas para la misma reserva
   @@unique([IdReserva, IdCliente])
-  @@index([IdCliente])
 }
 
-/// ========== HABITACIONES EN ESTANCIA ==========
 model EstanciaHabitacion {
-  IdEstanciaHabitacion Int            @id @default(autoincrement())
+  IdEstanciaHabitacion Int       @id @default(autoincrement())
   IdEstancia           Int
   IdHabitacion         Int
   FechaEntradaReal     DateTime?
-  HoraEntradaReal      DateTime?
   FechaSalidaReal      DateTime?
-  HoraSalidaReal       DateTime?
-  TarifaPorNoche       Decimal?
-  TarifaPorHora        Decimal?
-  CantidadNoches       Int?
-  CantidadHoras        Int?
-  Subtotal             Decimal?
+  TarifaAplicada       Decimal?  @db.Decimal(10, 2) // Precio real cobrado
 
-  Estancia             Estancias      @relation(fields: [IdEstancia], references: [IdEstancia])
-  Habitacion           Habitaciones   @relation(fields: [IdHabitacion], references: [IdHabitacion])
-  DetallesFactura      DetalleFactura[]
+  Estancia   Estancias    @relation(fields: [IdEstancia], references: [IdEstancia], onDelete: Cascade)
+  Habitacion Habitaciones @relation(fields: [IdHabitacion], references: [IdHabitacion])
 
-  // ← misma habitación no se repite dentro de la misma estancia
   @@unique([IdEstancia, IdHabitacion])
-  @@index([IdHabitacion])
-}
-
-/// ========== FACTURAS ==========
-model Facturas {
-  IdFactura      Int        @id @default(autoincrement())
-  NumeroFactura  String     @unique      // ← número de factura único
-  IdCliente      Int
-  IdEstancia     Int
-  IdUsuario      Int
-  FechaEmision   DateTime
-  Subtotal       Decimal
-  Impuesto       Decimal
-  Total          Decimal
-  Estado         String
-
-  Cliente        Clientes   @relation(fields: [IdCliente], references: [IdCliente])
-  Estancia       Estancias  @relation(fields: [IdEstancia], references: [IdEstancia])
-  Usuario        Usuarios   @relation(fields: [IdUsuario], references: [IdUsuario])
-
-  Detalles       DetalleFactura[]
-  Pagos          Pagos[]
-
-  @@index([IdCliente])
-  @@index([IdEstancia])
-  @@index([IdUsuario])
-}
-
-model DetalleFactura {
-  IdDetalle            Int                 @id @default(autoincrement())
-  IdFactura            Int
-  Concepto             String
-  Cantidad             Decimal
-  PrecioUnitario       Decimal
-  TotalLinea           Decimal
-  IdEstanciaHabitacion Int?
-
-  Factura              Facturas            @relation(fields: [IdFactura], references: [IdFactura])
-  EstanciaHabitacion   EstanciaHabitacion? @relation(fields: [IdEstanciaHabitacion], references: [IdEstanciaHabitacion])
-
-  @@index([IdFactura])
-  @@index([IdEstanciaHabitacion])
-}
-
-/// ========== PAGOS ==========
-model Pagos {
-  IdPago      Int       @id @default(autoincrement())
-  IdFactura   Int
-  FechaPago   DateTime
-  Monto       Decimal
-  MetodoPago  String
-  Referencia  String?   // si quieres también puedes hacerla @unique
-  Estado      String
-
-  Factura     Facturas  @relation(fields: [IdFactura], references: [IdFactura])
-
-  @@index([IdFactura])
 }
