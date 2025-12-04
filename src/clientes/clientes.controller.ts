@@ -24,7 +24,7 @@ export class ClientesController {
 
   // Crear cliente: admin + recepcionista
   @UseGuards(RolesGuard)
-  @Roles(AppRole.Admin, AppRole.Recepcionista)
+  @Roles(AppRole.Admin, AppRole.Recepcionista, AppRole.Cliente)
   @Post()
   create(@Body() dto: CreateClienteDto) {
     return this.service.create(dto);
