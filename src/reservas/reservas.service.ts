@@ -3,35 +3,42 @@ import { PrismaService } from '../database/prisma/prisma.service';
 import { CreateReservaDto } from './dto/create-reserva.dto';
 import { UpdateReservaDto } from './dto/update-reserva.dto';
 
-function toDateOptional(value?: string) {
-  return value ? new Date(value) : undefined;
-}
-
 @Injectable()
 export class ReservasService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) {}
 
-  create(data: CreateReservaDto) {
-    const payload = {
-      ...data,
-      FechaReserva: toDateOptional(data.FechaReserva),
-      FechaEntradaPrevista: toDateOptional(data.FechaEntradaPrevista),
-      FechaSalidaPrevista: toDateOptional(data.FechaSalidaPrevista),
-    };
-
+  create(dto: CreateReservaDto) {
     return this.prisma.reservas.create({
-      data: payload,
+      data: {
+        CodigoReserva: dto.CodigoReserva,
+        IdCliente: dto.IdCliente,
+        IdUsuario: dto.IdUsuario ?? null,
+        Estado: dto.Estado,
+        Observaciones: dto.Observaciones,
+        MontoTotalEstimado: dto.MontoTotalEstimado,
+        FechaReserva: dto.FechaReserva
+          ? new Date(dto.FechaReserva)
+          : null,
+        FechaEntradaPrevista: dto.FechaEntradaPrevista
+          ? new Date(dto.FechaEntradaPrevista)
+          : null,
+        FechaSalidaPrevista: dto.FechaSalidaPrevista
+          ? new Date(dto.FechaSalidaPrevista)
+          : null,
+      },
     });
   }
 
   findAll() {
     return this.prisma.reservas.findMany({
-      orderBy: { IdReserva: 'asc' },
       include: {
         Cliente: true,
         Usuario: true,
-        ReservaHabitacion: true,
-        Estancias: true,
+        ReservaHabitacion: {
+          include: {
+            Habitacion: true,
+          },
+        },
       },
     });
   }
@@ -42,8 +49,11 @@ export class ReservasService {
       include: {
         Cliente: true,
         Usuario: true,
-        ReservaHabitacion: true,
-        Estancias: true,
+        ReservaHabitacion: {
+          include: {
+            Habitacion: true,
+          },
+        },
       },
     });
 
@@ -54,37 +64,33 @@ export class ReservasService {
     return reserva;
   }
 
-  async update(id: number, data: UpdateReservaDto) {
-    await this.findOne(id);
-
-    const payload: any = { ...data };
-
-    if (data.FechaReserva) {
-      payload.FechaReserva = toDateOptional(data.FechaReserva);
-    }
-    if (data.FechaEntradaPrevista) {
-      payload.FechaEntradaPrevista = toDateOptional(
-        data.FechaEntradaPrevista,
-      );
-    }
-    if (data.FechaSalidaPrevista) {
-      payload.FechaSalidaPrevista = toDateOptional(
-        data.FechaSalidaPrevista,
-      );
-    }
-
+  update(id: number, dto: UpdateReservaDto) {
     return this.prisma.reservas.update({
       where: { IdReserva: id },
-      data: payload,
+      data: {
+        ...dto,
+        FechaReserva: dto.FechaReserva
+          ? new Date(dto.FechaReserva)
+          : undefined,
+        FechaEntradaPrevista: dto.FechaEntradaPrevista
+          ? new Date(dto.FechaEntradaPrevista)
+          : undefined,
+        FechaSalidaPrevista: dto.FechaSalidaPrevista
+          ? new Date(dto.FechaSalidaPrevista)
+          : undefined,
+      },
     });
   }
 
   async remove(id: number) {
-    await this.findOne(id);
+    // Primero borra los detalles
+    await this.prisma.reservaHabitacion.deleteMany({
+      where: { IdReserva: id },
+    });
 
+    // Luego la reserva
     return this.prisma.reservas.delete({
       where: { IdReserva: id },
     });
   }
 }
-
