@@ -1,138 +1,90 @@
 <h1 align="center">Hotel Ventura API</h1>
 <h3 align="center">Backend para la gestión integral de un hotel | NestJS · Prisma · PostgreSQL</h3>
 
-<p align="center">
-  <img src="https://user-images.githubusercontent.com/73097560/115834477-dbab4500-a447-11eb-908a-139a6edaec5c.gif" alt="divider">
-</p>
 
 ---
 
-## Tecnologías principales
 
-### Backend y Lenguajes
+## Resumen breve
 
-<p align="left">
-  <img src="https://img.shields.io/badge/NestJS-E0234E?style=for-the-badge&logo=nestjs&logoColor=white" alt="NestJS">
-  <img src="https://img.shields.io/badge/Node.js-43853D?style=for-the-badge&logo=node.js&logoColor=white" alt="Node.js">
-  <img src="https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white" alt="TypeScript">
-</p>
 
-### Acceso a datos y Base de datos
+Hotel Ventura API es un backend modular construido con NestJS y Prisma que gestiona reservas, estancias, facturación, pagos y usuarios para un hotel.
 
-<p align="left">
-  <img src="https://img.shields.io/badge/Prisma-2D3748?style=for-the-badge&logo=prisma&logoColor=white" alt="Prisma ORM">
-  <img src="https://img.shields.io/badge/PostgreSQL-4169E1?style=for-the-badge&logo=postgresql&logoColor=white" alt="PostgreSQL">
-</p>
-
-### Autenticación, herramientas y despliegue
-
-<p align="left">
-  <img src="https://img.shields.io/badge/JWT-000000?style=for-the-badge&logo=jsonwebtokens&logoColor=white" alt="JWT">
-  <img src="https://img.shields.io/badge/Passport-34E27A?style=for-the-badge&logo=passport&logoColor=white" alt="Passport">
-  <img src="https://img.shields.io/badge/Railway-0B0D0E?style=for-the-badge&logo=railway&logoColor=white" alt="Railway">
-  <img src="https://img.shields.io/badge/VS_Code-007ACC?style=for-the-badge&logo=visualstudiocode&logoColor=white" alt="VS Code">
-  <img src="https://img.shields.io/badge/Git-F05032?style=for-the-badge&logo=git&logoColor=white" alt="Git">
-</p>
 
 ---
 
-## Descripción del proyecto
 
-Hotel Ventura API es un backend construido con NestJS y Prisma que gestiona el ciclo completo de operación de un hotel:
+## Principios de diseño aplicados
 
-- Autenticación y autorización con JWT.
-- Administración de usuarios de login y personal interno del hotel.
-- Gestión de clientes, tipos de habitación y habitaciones.
-- Creación y manejo de reservas (planificación).
-- Registro de estancias reales (check-in/check-out).
-- Generación de facturas, detalle de factura y registro de pagos.
 
-Está pensado para integrarse con un panel de administración y un frontend público, permitiendo controlar desde un solo backend:
+Este repositorio implementa buenas prácticas vistas en el taller formativo. En particular:
 
-- Reservas
-- Estancias
-- Facturación
-- Pagos
-- Usuarios y roles
 
----
+- **SOLID**
+- **Open/Closed (OCP)**: los servicios están diseñados para que nuevas formas de cálculo o reglas se agreguen mediante estrategias o nuevas implementaciones sin modificar las clases existentes. Ejemplo: `src/reservas/pricing/*`.
+- **Dependency Inversion (DIP)**: los servicios dependen de abstracciones (interfaces y tokens) y no de implementaciones concretas. Ejemplo: `IReservaRepository` + `ReservaPrismaRepository`.
 
-## Arquitectura y módulos
 
-La API está organizada de forma modular siguiendo las buenas prácticas de NestJS.
+- **Patrones de diseño**
+- **Repository Pattern**: encapsula el acceso a Prisma en repositorios concretos (`src/*/repositories/*`).
+- **Strategy Pattern**: para lógica variable (cálculo de tarifas, reglas de facturación), se inyectan estrategias (`src/*/pricing/*`).
 
-### Módulos principales
 
-- `auth`  
-  Maneja el registro, login y perfil del usuario autenticado. Implementa JWT y guards para proteger rutas.
+> Nota: Single Responsibility Principle (SRP) fue revisado en el taller y se aplicó organizando controladores, servicios y repositorios en capas separadas.
 
-- `users`  
-  Usuarios de login (tabla `User`), con email, password y role lógico (`admin`, `recepcionista`, `cliente`).
-
-- `roles`  
-  Roles internos del hotel (tabla `Roles`), utilizados por el personal del hotel (módulo `usuarios`).
-
-- `usuarios`  
-  Personal del hotel: administradores, recepcionistas, etc. (tabla `Usuarios`), vinculados a `Roles`.
-
-- `clientes`  
-  Información de clientes finales del hotel (nombre, contacto, documento de identidad, etc.).
-
-- `tipos-habitacion`  
-  Catálogo de tipos de habitación (capacidad, precio por noche, precio por hora).
-
-- `habitaciones`  
-  Habitaciones físicas del hotel (número, tipo, estado, características).
-
-- `reservas`  
-  Reservas planificadas (fechas previstas, estado, relación con cliente y habitaciones a través de `ReservaHabitacion`).
-
-- `estancias`  
-  Estancias reales: check-in, check-out, monto final y estado.
-
-- `estancia-habitacion`  
-  Relación entre estancias y habitaciones ocupadas, con información de tarifas, noches/horas y subtotales.
-
-- `facturas`  
-  Facturación de las estancias: total, impuestos, usuario que emite la factura, estado.
-
-- `detalle-factura`  
-  Líneas de detalle por factura (concepto, cantidad, precio unitario, total por línea).
-
-- `pagos`  
-  Pagos realizados por factura (monto, método de pago, referencia y estado).
-
-- `database / prisma`  
-  Encapsula la conexión a la base de datos PostgreSQL mediante Prisma.
 
 ---
 
-## Modelo de datos (resumen)
 
-Algunos de los modelos definidos en `schema.prisma`:
+## Módulos afectados / ejemplo aplicado
 
-- `User`  
-  Usuario de login (email, password, role).
 
-- `Roles`  
-  `IdRol`, `NombreRol`, con relación a `Usuarios`.
+Se aplicó el refactor y buenas prácticas en el módulo **reservas** como ejemplo canónico. Cambios clave:
 
-- `Usuarios`  
-  Personal del hotel (`IdUsuario`, `Nombre`, `Usuario`, `ContrasenaHash`, `IdRol`).
 
-- `Clientes`  
-  Información de clientes del hotel.
+- Creación de interfaz `IReservaRepository` en `src/reservas/interfaces`
+- Implementación `ReservaPrismaRepository` en `src/reservas/repositories`
+- Separación de cálculo de tarifas con `NightlyPricingStrategy` y `HourlyPricingStrategy` en `src/reservas/pricing`
+- `ReservasService` inyecta el `RESERVA_REPOSITORY` y las estrategias mediante tokens — esto facilita testeo y extensión sin tocar código existente.
 
-- `TiposHabitacion` y `Habitaciones`  
-  Catálogo de tipos y habitaciones físicas.
 
-- `Reservas` y `ReservaHabitacion`  
-  Reservas planificadas y detalle de habitaciones reservadas.
+Para replicar el mismo patrón en otros módulos (estancias, facturas, habitaciones), crea:
 
-- `Estancias` y `EstanciaHabitacion`  
-  Estancias reales y detalle de habitaciones ocupadas con sus tarifas y subtotales.
 
-- `Facturas`, `DetalleFactura` y `Pagos`  
-  Facturación completa, conceptos de la factura y pagos asociados.
+- `interfaces/*-repository.interface.ts`
+- `repositories/*-prisma.repository.ts`
+- `pricing/*` o `strategies/*` según necesidad
+- Modifica `*.module.ts` para registrar providers con tokens
+
 
 ---
+
+
+## Archivos modificados (lista para commit)
+
+
+- `src/reservas/interfaces/reserva-repository.interface.ts` (nuevo)
+- `src/reservas/repositories/reserva.prisma.repository.ts` (nuevo)
+- `src/reservas/interfaces/pricing-strategy.interface.ts` (nuevo)
+- `src/reservas/pricing/nightly-pricing.strategy.ts` (nuevo)
+- `src/reservas/pricing/hourly-pricing.strategy.ts` (nuevo)
+- `src/reservas/reservas.service.ts` (reemplazado)
+- `src/reservas/reservas.module.ts` (reemplazado)
+- `README.md` (reemplazado/actualizado)
+
+
+---
+
+
+## Instrucciones para aplicar los cambios (local)
+
+
+1. Extrae el repositorio y ubícate en la carpeta raíz `Hotel-ventura`.
+2. Reemplaza/crea los archivos indicados con el contenido provisto en este documento.
+3. Ejecuta pruebas rápidas (si aplica):
+
+
+```bash
+npm install
+npm run build
+npm run start:dev
