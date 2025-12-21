@@ -1,6 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { PricingStrategy } from './pricing.strategy';
-
+import { PricingStrategy } from '../strategies/pricing.strategy';
 @Injectable()
 export class HourlyPricingStrategy implements PricingStrategy {
   calculate(data: { precio: number; cantidad: number }): number {
